@@ -7,3 +7,4 @@
 - 영화/영화관/상영관/시간 으로 예매
 - 영화관은 여러 상영관으로 이루어져 있음
 - 상영관은 10*10 좌석을 가짐# MovieReservationSystem
+# MovieReservationSystem
