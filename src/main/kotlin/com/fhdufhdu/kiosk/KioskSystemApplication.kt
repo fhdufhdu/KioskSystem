@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class KioskSystemApplication
 
 fun main(args: Array<String>) {
-	runApplication<KioskSystemApplication>(*args)
+    runApplication<KioskSystemApplication>(*args)
 }
