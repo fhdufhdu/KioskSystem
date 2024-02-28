@@ -1,14 +1,13 @@
 package com.fhdufhdu.kiosk
 
+//import com.fhdufhdu.kiosk.auth.StoreUserDetailsService
 import com.fhdufhdu.kiosk.auth.LoginFilter
-import com.fhdufhdu.kiosk.auth.StoreUserDetailsService
 import com.fhdufhdu.kiosk.common.KioskPasswordEncoder
 import com.fhdufhdu.kiosk.repository.StoreRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -21,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @ComponentScan
 @EnableWebSecurity
 class SpringConfiguration(
-    val storeUserDetailsService: StoreUserDetailsService,
+//    val storeUserDetailsService: StoreUserDetailsService,
     val authenticationConfiguration: AuthenticationConfiguration,
     val storeRepository: StoreRepository
 ) {
@@ -40,14 +39,14 @@ class SpringConfiguration(
                 it.disable()
             }
             .addFilterBefore(
-                LoginFilter("/store/sign-in", authenticationManager(), kioskPasswordEncoder()),
+                LoginFilter(kioskPasswordEncoder(), storeRepository),
                 UsernamePasswordAuthenticationFilter::class.java
             )
             .authorizeHttpRequests {
-                it.requestMatchers("/store/sign-in", "/store/sign-up").permitAll()
+                it.requestMatchers("/store/sign-in", "/store/sign-up", "/error").permitAll()
                     .anyRequest().authenticated()
             }
-            .authenticationProvider(authProvider())
+//            .authenticationProvider(authProvider())
 
         return http.build()
     }
@@ -67,12 +66,12 @@ class SpringConfiguration(
         return KioskPasswordEncoder()
     }
 
-    @Bean
-    fun authProvider(): DaoAuthenticationProvider {
-        val authProvider = DaoAuthenticationProvider()
-        authProvider.setUserDetailsService(storeUserDetailsService)
-        authProvider.setPasswordEncoder(passwordEncoder())
-        return authProvider
-    }
+//    @Bean
+//    fun authProvider(): DaoAuthenticationProvider {
+//        val authProvider = DaoAuthenticationProvider()
+//        authProvider.setUserDetailsService(storeUserDetailsService)
+//        authProvider.setPasswordEncoder(passwordEncoder())
+//        return authProvider
+//    }
 
 }

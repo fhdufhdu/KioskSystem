@@ -2,8 +2,6 @@ package com.fhdufhdu.kiosk.domain.store
 
 import jakarta.validation.Valid
 import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -22,10 +20,7 @@ class StoreController(
 
     @PostMapping("sign-in")
     fun signIn(@RequestBody @Valid signInDto: StoreRequest.SingIn) {
-        val idAndPassword = storeService.signIn(signInDto)
-        val token = UsernamePasswordAuthenticationToken(idAndPassword.first, idAndPassword.second)
-        val authentication = authenticationManager.authenticate(token)
-        SecurityContextHolder.getContext().authentication = authentication
+        println(1)
     }
 
     @PostMapping("sign-in/kiosk")

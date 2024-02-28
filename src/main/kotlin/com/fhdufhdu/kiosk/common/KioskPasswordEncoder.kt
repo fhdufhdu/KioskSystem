@@ -23,8 +23,6 @@ class KioskPasswordEncoder : PasswordEncoder {
     override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean {
         rawPassword ?: return false
         encodedPassword ?: return false
-        println(encode(rawPassword))
-        println(encodedPassword)
         return encode(rawPassword) == encodedPassword
     }
 

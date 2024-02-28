@@ -3,43 +3,54 @@ package com.fhdufhdu.kiosk.auth
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fhdufhdu.kiosk.common.KioskPasswordEncoder
 import com.fhdufhdu.kiosk.domain.store.StoreRequest
+import com.fhdufhdu.kiosk.repository.StoreRepository
+import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.http.HttpStatus
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.Authentication
-import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher
-import org.springframework.web.server.ResponseStatusException
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository
+import org.springframework.web.filter.OncePerRequestFilter
 
 class LoginFilter(
-    path: String,
-    private val authenticationManager: AuthenticationManager,
-    private val passwordEncoder: KioskPasswordEncoder
-) :
-    AbstractAuthenticationProcessingFilter(
-        AntPathRequestMatcher(path, "POST"), authenticationManager
+    private val passwordEncoder: KioskPasswordEncoder,
+    private val storeRepository: StoreRepository
+) : OncePerRequestFilter() {
+    override fun doFilterInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        filterChain: FilterChain
     ) {
-    override fun attemptAuthentication(request: HttpServletRequest, response: HttpServletResponse): Authentication? {
-        try {
-            val om = jacksonObjectMapper()
-            val signInDto = om.readValue(request.inputStream, StoreRequest.SingIn::class.java)
+        if (request.requestURI != "/store/sign-in") {
+            filterChain.doFilter(request, response)
+        } else {
+            val newRequest = LoginRequestWrapper(request)
+            try {
+                val om = jacksonObjectMapper()
+                val signInDto = om.readValue(newRequest.inputStream, StoreRequest.SingIn::class.java)
 
-            val salt = passwordEncoder.makeSalt(signInDto.id)
-            val token = UsernamePasswordAuthenticationToken(signInDto.id, signInDto.password + salt)
+                val store = storeRepository.findByIdOrNull(signInDto.id) ?: return failLogin(response)
+                val auth = StoreUserDetails(store)
+                auth.isAuthenticated = passwordEncoder.matches(signInDto.password + store.salt, store.password)
+                if (!auth.isAuthenticated) return failLogin(response)
 
-            val authentication = authenticationManager.authenticate(token)
-
-            println((authentication.principal as StoreUserDetails).username)
-
-            return authentication
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+                // 현재 리퀘스트 바운드에서 적용되는 부분
+                SecurityContextHolder.getContext().authentication = auth
+                // 리퀘스트 바운드 영역 데이터를 글로벌한 영역으로 저장함. 향후 다른 리퀘스트에서도 세션이 유지되도록
+                newRequest.session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+                )
+                // 해당 세션 비활성화 유지 시간 설정
+                newRequest.session.maxInactiveInterval = 10
+            } catch (err: Exception) {
+                err.printStackTrace()
+                return failLogin(response)
+            }
         }
-
-        return null
     }
 
+    private fun failLogin(response: HttpServletResponse) {
+        response.sendError(403)
+    }
 }
